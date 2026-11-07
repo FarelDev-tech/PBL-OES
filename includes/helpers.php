@@ -108,6 +108,8 @@ function renderBadge($teks, $tipe = 'auto')
             'Selesai'             => 'badge-neutral',
             'Nonaktif'            => 'badge-neutral',
             'Koreksi Admin'       => 'badge-primary-dark',
+            'Koordinator'         => 'badge-dark',
+            'Anggota'             => 'badge-primary',
         ];
         $kelas = $map[$teks] ?? 'badge-neutral';
     } else {

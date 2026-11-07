@@ -1,6 +1,4 @@
--- OES PostgreSQL DDL
-
-DROP VIEW IF EXISTS v_leaderboard CASCADE;
+-- DDL Tabel & Indeks OES
 DROP TABLE IF EXISTS riwayat_poin CASCADE;
 DROP TABLE IF EXISTS presensi CASCADE;
 DROP TABLE IF EXISTS sesi_presensi CASCADE;
@@ -9,7 +7,7 @@ DROP TABLE IF EXISTS divisi CASCADE;
 DROP TABLE IF EXISTS proker CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
--- TABEL PENGGUNA & KREDENSIAL
+-- Tabel Pengguna & Kredensial
 CREATE TABLE users (
     id_user SERIAL,
     nim VARCHAR(20) NOT NULL,
@@ -28,7 +26,7 @@ CREATE TABLE users (
     CONSTRAINT chk_users_status CHECK (status_akun IN ('Aktif', 'Nonaktif'))
 );
 
--- TABEL PROGRAM KERJA
+-- Tabel Program Kerja
 CREATE TABLE proker (
     id_proker SERIAL,
     nama_proker VARCHAR(150) NOT NULL,
@@ -43,7 +41,7 @@ CREATE TABLE proker (
     CONSTRAINT chk_proker_status CHECK (status_proker IN ('Perencanaan', 'Berjalan', 'Selesai'))
 );
 
--- TABEL DIVISI DALAM PROKER
+-- Tabel Divisi
 CREATE TABLE divisi (
     id_divisi SERIAL,
     id_proker INT NOT NULL,
@@ -55,7 +53,7 @@ CREATE TABLE divisi (
     CONSTRAINT uq_divisi_proker_nama UNIQUE (id_proker, nama_divisi)
 );
 
--- TABEL KEPANITIAAN PROKER
+-- Tabel Kepanitiaan Proker
 CREATE TABLE panitia_proker (
     id_panitia SERIAL,
     id_proker INT NOT NULL,
@@ -72,7 +70,7 @@ CREATE TABLE panitia_proker (
     CONSTRAINT uq_panitia_proker_user UNIQUE (id_proker, id_user)
 );
 
--- TABEL SESI PRESENSI (Rapat / Hari-H Kegiatan)
+-- Tabel Sesi Presensi
 CREATE TABLE sesi_presensi (
     id_kegiatan SERIAL,
     id_proker INT NOT NULL,
@@ -83,7 +81,7 @@ CREATE TABLE sesi_presensi (
     tanggal DATE,
     jam_mulai TIME,
     jam_selesai TIME,
-    mode_kegiatan VARCHAR(20),
+    pelaksanaan VARCHAR(20),
     tempat_atau_link VARCHAR(255),
     status_detail VARCHAR(20) NOT NULL DEFAULT 'Belum Dilengkapi',
     status_sesi VARCHAR(20) NOT NULL DEFAULT 'Dibuka',
@@ -93,12 +91,12 @@ CREATE TABLE sesi_presensi (
     CONSTRAINT fk_sesi_proker FOREIGN KEY (id_proker) REFERENCES proker(id_proker) ON DELETE CASCADE,
     CONSTRAINT fk_sesi_divisi FOREIGN KEY (id_divisi) REFERENCES divisi(id_divisi) ON DELETE SET NULL,
     CONSTRAINT chk_sesi_jenis CHECK (jenis_kegiatan IN ('Rapat', 'Hari-H', 'Lainnya')),
-    CONSTRAINT chk_sesi_mode CHECK (mode_kegiatan IN ('Offline', 'Online')),
+    CONSTRAINT chk_sesi_pelaksanaan CHECK (pelaksanaan IN ('Offline', 'Online')),
     CONSTRAINT chk_sesi_status_detail CHECK (status_detail IN ('Belum Dilengkapi', 'Lengkap')),
     CONSTRAINT chk_sesi_status_sesi CHECK (status_sesi IN ('Dibuka', 'Ditutup'))
 );
 
--- TABEL PRESENSI
+-- Tabel Presensi
 CREATE TABLE presensi (
     id_presensi SERIAL,
     id_kegiatan INT NOT NULL,
@@ -109,17 +107,17 @@ CREATE TABLE presensi (
     catatan_penolakan TEXT,
     divalidasi_oleh INT,
     waktu_validasi TIMESTAMP,
+    metadata JSONB DEFAULT '{}'::jsonb,
 
     CONSTRAINT pk_presensi PRIMARY KEY (id_presensi),
-    CONSTRAINT fk_presensi_sesi FOREIGN KEY (id_kegiatan) REFERENCES sesi_presensi(id_kegiatan) ON DELETE
-    CASCADE,
+    CONSTRAINT fk_presensi_sesi FOREIGN KEY (id_kegiatan) REFERENCES sesi_presensi(id_kegiatan) ON DELETE CASCADE,
     CONSTRAINT fk_presensi_user FOREIGN KEY (id_user) REFERENCES users(id_user) ON DELETE CASCADE,
     CONSTRAINT fk_presensi_validator FOREIGN KEY (divalidasi_oleh) REFERENCES users(id_user) ON DELETE SET NULL,
-    CONSTRAINT chk_presensi_status CHECK (status_validasi IN ('Menunggu', 'Sah', 'Ditolak')),
+    CONSTRAINT chk_presensi_status CHECK (status_validasi IN ('Menunggu', 'Disetujui', 'Ditolak')),
     CONSTRAINT uq_presensi_kegiatan_user UNIQUE (id_kegiatan, id_user)
 );
 
--- TABEL RIWAYAT POIN KEAKTIFAN
+-- Tabel Riwayat Poin
 CREATE TABLE riwayat_poin (
     id_riwayat SERIAL,
     id_user INT NOT NULL,
@@ -139,27 +137,9 @@ CREATE TABLE riwayat_poin (
     CONSTRAINT chk_riwayat_sumber CHECK (sumber IN ('Presensi', 'Koreksi Admin', 'Penghargaan'))
 );
 
--- INDEX PERFORMA QUERY
+-- Indeks 
 CREATE INDEX idx_users_role_status ON users(role, status_akun);
 CREATE INDEX idx_sesi_presensi_proker ON sesi_presensi(id_proker);
 CREATE INDEX idx_presensi_kegiatan ON presensi(id_kegiatan, status_validasi);
 CREATE INDEX idx_riwayat_poin_user ON riwayat_poin(id_user, id_proker);
-
--- VIEW LEADERBOARD POIN KEAKTIFAN
-CREATE VIEW v_leaderboard AS
-SELECT
-    u.id_user,
-    u.nim,
-    u.nama,
-    u.role,
-    u.status_akun,
-    SUM(rp.poin) AS total_poin,
-    COUNT(CASE WHEN rp.sumber = 'Presensi' THEN 1 END) AS kali_presensi
-FROM users u
-LEFT JOIN riwayat_poin rp ON u.id_user = rp.id_user
-WHERE u.role IN ('anggota', 'koordinator') AND u.status_akun = 'Aktif'
-GROUP BY u.id_user, u.nim, u.nama, u.role, u.status_akun;
-
--- DML DATA AKUN AWAL SUPERADMIN
-INSERT INTO users (nim, nama, email, no_hp, password, role, status_akun) VALUES
-('000000001', 'Super Administrator', 'superadmin@oes.polinema.ac.id', '081234567890', 'superadmin123', 'super_admin', 'Aktif');
+CREATE INDEX idx_users_fts ON users USING gin(to_tsvector('indonesian', nama || ' ' || nim));

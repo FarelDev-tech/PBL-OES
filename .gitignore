@@ -1,2 +1,4 @@
 config/database.php
 node_modules/
+public/uploads/presensi/*
+!public/uploads/presensi/.gitkeep

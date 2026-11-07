@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:css": "tailwindcss -i src/design-system.css -o public/assets/css/tailwind.css --minify",
-    "watch:css": "tailwindcss -i src/design-system.css -o public/assets/css/tailwind.css --watch"
+    "build:css": "tailwindcss -i public/assets/css/design-system.css -o public/assets/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i public/assets/css/design-system.css -o public/assets/css/tailwind.css --watch"
   },
   "repository": {
     "type": "git",

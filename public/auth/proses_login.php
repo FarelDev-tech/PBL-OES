@@ -1,12 +1,13 @@
 <?php
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../models/AuthModel.php';
+require_once __DIR__ . '/../../models/ProkerModel.php';
+require_once __DIR__ . '/../../includes/csrf.php';
+require_once __DIR__ . '/../../includes/helpers.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../queries/query_auth.php';
-require_once __DIR__ . '/../../includes/csrf.php';
-require_once __DIR__ . '/../../includes/helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: login.php');
@@ -29,7 +30,7 @@ if ($nim === '' || $password === '') {
     exit;
 }
 
-$user = cariUserByNim($pdo, $nim);
+$user = (new AuthModel($pdo))->findByNim($nim);
 
 if (!$user) {
     $_SESSION['login_error'] = 'NIM atau password salah.';
@@ -54,6 +55,8 @@ $_SESSION['nim']     = $user['nim'];
 $_SESSION['nama']    = $user['nama'];
 $_SESSION['role']    = $user['role'];
 $_SESSION['email']   = $user['email'];
+
+unset($_SESSION['active_proker_id'], $_SESSION['active_role']);
 
 // Direct ke dashboard utama
 header('Location: ../dashboard/index.php');

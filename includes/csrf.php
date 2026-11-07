@@ -1,6 +1,4 @@
 <?php
-// Proteksi CSRF berbasis Session
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -29,10 +27,15 @@ function verifyCsrfToken(): bool
     return !empty($token) && !empty($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
-function verifyCsrfOrDie(): void
+function requireCsrf(): void
 {
     if (!verifyCsrfToken()) {
         http_response_code(403);
         die('Permintaan ditolak: Token keamanan (CSRF) tidak valid atau sesi telah berakhir.');
     }
+}
+
+function verifyCsrfOrDie(): void
+{
+    requireCsrf();
 }

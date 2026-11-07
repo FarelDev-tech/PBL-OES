@@ -1,10 +1,10 @@
 <?php
+require_once __DIR__ . '/../../includes/helpers.php';
+require_once __DIR__ . '/../../includes/csrf.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-require_once __DIR__ . '/../../includes/helpers.php';
-require_once __DIR__ . '/../../includes/csrf.php';
 
 // Jika sudah login, langsung lempar ke dashboard
 if (!empty($_SESSION['user_id'])) {
@@ -22,7 +22,6 @@ unset($_SESSION['login_error'], $_SESSION['old_nim']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Masuk ke OES — Organization Engagement System</title>
-    <link rel="stylesheet" href="../assets/css/design-system.css">
     <link rel="stylesheet" href="../assets/css/tailwind.css">
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
@@ -63,7 +62,7 @@ unset($_SESSION['login_error'], $_SESSION['old_nim']);
                 <form method="post" action="proses_login.php" autocomplete="off">
                     <?php echo csrfField(); ?>
 
-                    <div class="form-group" style="margin-bottom: 18px;">
+                    <div class="form-group mb-4">
                         <label class="form-label" for="nim">NIM</label>
                         <input
                             type="text"
@@ -77,7 +76,7 @@ unset($_SESSION['login_error'], $_SESSION['old_nim']);
                         >
                     </div>
 
-                    <div class="form-group" style="margin-bottom: 22px;">
+                    <div class="form-group mb-5">
                         <label class="form-label" for="password">Password</label>
                         <div class="input-group-password">
                             <input
@@ -105,17 +104,42 @@ unset($_SESSION['login_error'], $_SESSION['old_nim']);
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" style="width: 100%; height: 44px; padding: 0 18px; font-size: 15px; font-weight: 600; border-radius: 8px;">
+                    <button type="submit" class="btn btn-primary w-full h-11 px-4 text-sm font-semibold rounded-oes-md">
                         Masuk
                     </button>
                 </form>
 
-                <div class="auth-footer-help" style="margin-top: 20px; text-align: center; font-size: 13px; color: var(--oes-neutral-500);">
-                    <span>Lupa password? <a href="#" style="color: inherit; text-decoration: underline;" onclick="alert('Silakan hubungi Admin Ormawa untuk melakukan reset password akun Anda.'); return false;">Hubungi Admin untuk reset.</a></span>
+                <div class="auth-footer-help mt-5 text-center text-xs text-oes-neutral-500">
+                    <span>Lupa password? <a href="#" class="text-inherit underline" onclick="bukaPopup('modal-bantuan-login'); return false;">Hubungi Admin untuk reset.</a></span>
                 </div>
             </div>
         </div>
     </main>
+</div>
+
+<div class="popup-backdrop modal-backdrop" id="modal-bantuan-login">
+    <div class="popup-dialog modal-dialog" style="max-width: 420px;">
+        <div class="popup-header modal-header">
+            <div>
+                <h3 class="popup-title modal-title">Bantuan Reset Password</h3>
+                <p class="popup-subtitle modal-subtitle">Informasi pemulihan akses akun Sistem OES.</p>
+            </div>
+            <button type="button" class="popup-close-btn modal-close-btn" onclick="tutupPopup('modal-bantuan-login')">&times;</button>
+        </div>
+
+        <div style="font-size: 13px; color: var(--oes-neutral-700); line-height: 1.6; margin: 12px 0 20px;">
+            <p style="margin-bottom: 10px;">
+                Demi menjaga keamanan data kepanitiaan dan rekapitulasi poin, reset password dilakukan langsung oleh <strong>Administrator Organisasi</strong>.
+            </p>
+            <p style="margin-bottom: 0;">
+                Silakan hubungi admin atau pengurus ormawa. Admin dapat mereset password akun Anda kembali ke format standar NIM melalui panel Kelola Anggota.
+            </p>
+        </div>
+
+        <div class="popup-footer modal-footer">
+            <button type="button" class="btn btn-primary w-full" onclick="tutupPopup('modal-bantuan-login')">Saya Mengerti</button>
+        </div>
+    </div>
 </div>
 
 <script src="../assets/js/app.js"></script>

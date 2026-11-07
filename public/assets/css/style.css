@@ -62,12 +62,6 @@
 }
 
 /* RESET & BASE */
-*, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
 body {
     font-family: var(--font-sans);
     background-color: var(--oes-canvas-50);
@@ -78,7 +72,6 @@ body {
 }
 
 a {
-    color: inherit;
     text-decoration: none;
 }
 
@@ -1005,8 +998,8 @@ button, input, select, textarea {
     top: 80px;
     right: 28px;
     z-index: 999;
-    min-width: 300px;
-    max-width: 420px;
+    min-width: 320px;
+    max-width: 440px;
     padding: 14px 18px;
     border-radius: var(--radius-lg);
     font-size: 13px;
@@ -1015,7 +1008,7 @@ button, input, select, textarea {
     align-items: center;
     justify-content: space-between;
     gap: 14px;
-    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
@@ -1025,16 +1018,35 @@ button, input, select, textarea {
     pointer-events: none;
 }
 
+.flash-banner button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 18px;
+    line-height: 1;
+    opacity: 0.85;
+    padding: 0;
+    margin: 0;
+    transition: opacity 0.2s ease;
+}
+
+.flash-banner button:hover {
+    opacity: 1;
+}
+
 .flash-success {
-    background-color: var(--oes-success-bg);
-    color: var(--oes-success-text);
-    border: 1px solid var(--oes-success-border);
+    background-color: #15803d;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 25px -5px rgba(21, 128, 61, 0.45);
 }
 
 .flash-error {
-    background-color: var(--oes-danger-bg);
-    color: var(--oes-danger-text);
-    border: 1px solid var(--oes-danger-border);
+    background-color: #dc2626;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.45);
 }
 
 /* =========================================================================
