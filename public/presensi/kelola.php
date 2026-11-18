@@ -172,7 +172,7 @@ include __DIR__ . '/../../includes/header.php';
             <button type="button" class="popup-close-btn modal-close-btn" onclick="tutupPopup('modal-tambah-sesi')">&times;</button>
         </div>
 
-        <form method="post" action="proses.php">
+        <form method="post" action="proses.php" onsubmit="return validasiFormSesi(this)">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="tambah_kegiatan">
             <input type="hidden" name="proker_id" value="<?php echo (int) $selectedProkerId; ?>">
@@ -197,8 +197,16 @@ include __DIR__ . '/../../includes/header.php';
             </div>
 
             <div class="form-group" style="margin-bottom: 14px;">
-                <label class="form-label">Tanggal Pelaksanaan</label>
-                <input type="date" name="tanggal" class="form-control w-full" value="<?php echo date('Y-m-d'); ?>" required>
+                <label class="form-label">Tanggal Pelaksanaan *</label>
+                <input type="date" name="tanggal" class="form-control w-full"
+                       value="<?php echo !empty($activeProker['tanggal_mulai']) && date('Y-m-d') < $activeProker['tanggal_mulai'] ? $activeProker['tanggal_mulai'] : (!empty($activeProker['tanggal_selesai']) && date('Y-m-d') > $activeProker['tanggal_selesai'] ? $activeProker['tanggal_selesai'] : date('Y-m-d')); ?>"
+                       min="<?php echo htmlspecialchars($activeProker['tanggal_mulai'] ?? ''); ?>"
+                       max="<?php echo htmlspecialchars($activeProker['tanggal_selesai'] ?? ''); ?>" required>
+                <?php if (!empty($activeProker['tanggal_mulai']) && !empty($activeProker['tanggal_selesai'])): ?>
+                    <p class="text-xs text-oes-neutral-500 mt-1">
+                        Batas tanggal kegiatan: <strong><?php echo formatTanggal($activeProker['tanggal_mulai']); ?></strong> s/d <strong><?php echo formatTanggal($activeProker['tanggal_selesai']); ?></strong> (sesuai periode proker)
+                    </p>
+                <?php endif; ?>
             </div>
 
             <div class="form-row-2" style="margin-bottom: 14px;">
@@ -243,15 +251,22 @@ include __DIR__ . '/../../includes/header.php';
             <button type="button" class="popup-close-btn modal-close-btn" onclick="tutupPopup('modal-atur-jadwal')">&times;</button>
         </div>
 
-        <form method="post" action="proses.php">
+        <form method="post" action="proses.php" onsubmit="return validasiFormSesi(this)">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="update_jadwal_kegiatan">
             <input type="hidden" name="id_kegiatan" id="jadwal-id-kegiatan">
             <input type="hidden" name="proker_id" value="<?php echo (int) $selectedProkerId; ?>">
 
             <div class="form-group">
-                <label class="form-label">Tanggal Pelaksanaan</label>
-                <input type="date" name="tanggal" id="jadwal-tanggal" class="form-control w-full" required>
+                <label class="form-label">Tanggal Pelaksanaan *</label>
+                <input type="date" name="tanggal" id="jadwal-tanggal" class="form-control w-full"
+                       min="<?php echo htmlspecialchars($activeProker['tanggal_mulai'] ?? ''); ?>"
+                       max="<?php echo htmlspecialchars($activeProker['tanggal_selesai'] ?? ''); ?>" required>
+                <?php if (!empty($activeProker['tanggal_mulai']) && !empty($activeProker['tanggal_selesai'])): ?>
+                    <p class="text-xs text-oes-neutral-500 mt-1">
+                        Batas tanggal kegiatan: <strong><?php echo formatTanggal($activeProker['tanggal_mulai']); ?></strong> s/d <strong><?php echo formatTanggal($activeProker['tanggal_selesai']); ?></strong> (sesuai periode proker)
+                    </p>
+                <?php endif; ?>
             </div>
 
             <div class="form-row-2">
@@ -294,6 +309,26 @@ include __DIR__ . '/../../includes/header.php';
 </form>
 
 <script>
+function validasiFormSesi(form) {
+    const inputTgl = form.querySelector('input[name="tanggal"]');
+    if (inputTgl && inputTgl.value) {
+        const val = inputTgl.value;
+        const min = inputTgl.min;
+        const max = inputTgl.max;
+        if (min && val < min) {
+            alert('Tanggal pelaksanaan kegiatan tidak boleh sebelum batas tanggal mulai program kerja (' + min + ').');
+            inputTgl.focus();
+            return false;
+        }
+        if (max && val > max) {
+            alert('Tanggal pelaksanaan kegiatan tidak boleh melebihi batas tanggal selesai program kerja (' + max + ').');
+            inputTgl.focus();
+            return false;
+        }
+    }
+    return true;
+}
+
 function konfirmasiHapusKegiatan(idKegiatan, namaKegiatan) {
     bukaPopupKonfirmasi({
         judul: 'Hapus Sesi Kegiatan?',

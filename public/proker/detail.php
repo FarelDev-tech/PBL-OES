@@ -313,7 +313,7 @@ include __DIR__ . '/../../includes/header.php';
                 <h3 class="modal-title">Tambah Kegiatan Proker</h3>
                 <button type="button" class="modal-close" onclick="tutupPopup('modal-tambah-kegiatan')">&times;</button>
             </div>
-            <form method="post" action="proses.php">
+            <form method="post" action="proses.php" onsubmit="return validasiFormKegiatan(this)">
                 <?php echo csrfField(); ?>
                 <input type="hidden" name="aksi" value="tambah_kegiatan">
                 <input type="hidden" name="id_proker" value="<?php echo $idProker; ?>">
@@ -354,7 +354,14 @@ include __DIR__ . '/../../includes/header.php';
                         <div style="font-size: 12px; font-weight: 600; color: var(--oes-neutral-700); margin-bottom: 10px;">Jadwal &amp; Pelaksanaan (Opsional)</div>
                         <div class="form-group" style="margin-bottom: 10px;">
                             <label class="form-label">Tanggal Pelaksanaan</label>
-                            <input type="date" name="tanggal" class="form-control">
+                            <input type="date" name="tanggal" class="form-control"
+                                   min="<?php echo htmlspecialchars($proker['tanggal_mulai'] ?? ''); ?>"
+                                   max="<?php echo htmlspecialchars($proker['tanggal_selesai'] ?? ''); ?>">
+                            <?php if (!empty($proker['tanggal_mulai']) && !empty($proker['tanggal_selesai'])): ?>
+                                <div style="font-size: 11px; color: var(--oes-neutral-500); margin-top: 4px;">
+                                    Batas tanggal kegiatan: <strong><?php echo formatTanggal($proker['tanggal_mulai']); ?></strong> s/d <strong><?php echo formatTanggal($proker['tanggal_selesai']); ?></strong> (sesuai periode proker)
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
                             <div class="form-group" style="margin-bottom: 0;">
@@ -399,7 +406,7 @@ include __DIR__ . '/../../includes/header.php';
                 <h3 class="modal-title">Atur Pelaksanaan Kegiatan</h3>
                 <button type="button" class="modal-close" onclick="tutupPopup('modal-atur-pelaksanaan')">&times;</button>
             </div>
-            <form method="post" action="proses.php">
+            <form method="post" action="proses.php" onsubmit="return validasiFormKegiatan(this)">
                 <?php echo csrfField(); ?>
                 <input type="hidden" name="aksi" value="update_jadwal_kegiatan">
                 <input type="hidden" name="id_proker" value="<?php echo $idProker; ?>">
@@ -412,7 +419,14 @@ include __DIR__ . '/../../includes/header.php';
 
                     <div class="form-group" style="margin-bottom: 14px;">
                         <label class="form-label">Tanggal Pelaksanaan *</label>
-                        <input type="date" name="tanggal" id="atur-tanggal" class="form-control" required>
+                        <input type="date" name="tanggal" id="atur-tanggal" class="form-control" required
+                               min="<?php echo htmlspecialchars($proker['tanggal_mulai'] ?? ''); ?>"
+                               max="<?php echo htmlspecialchars($proker['tanggal_selesai'] ?? ''); ?>">
+                        <?php if (!empty($proker['tanggal_mulai']) && !empty($proker['tanggal_selesai'])): ?>
+                            <div style="font-size: 11px; color: var(--oes-neutral-500); margin-top: 4px;">
+                                Batas tanggal kegiatan: <strong><?php echo formatTanggal($proker['tanggal_mulai']); ?></strong> s/d <strong><?php echo formatTanggal($proker['tanggal_selesai']); ?></strong> (sesuai periode proker)
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
@@ -631,6 +645,26 @@ include __DIR__ . '/../../includes/header.php';
 <?php endif; ?>
 
 <script>
+function validasiFormKegiatan(form) {
+    const inputTgl = form.querySelector('input[name="tanggal"]');
+    if (inputTgl && inputTgl.value) {
+        const val = inputTgl.value;
+        const min = inputTgl.min;
+        const max = inputTgl.max;
+        if (min && val < min) {
+            alert('Tanggal pelaksanaan kegiatan tidak boleh sebelum batas tanggal mulai program kerja (' + min + ').');
+            inputTgl.focus();
+            return false;
+        }
+        if (max && val > max) {
+            alert('Tanggal pelaksanaan kegiatan tidak boleh melebihi batas tanggal selesai program kerja (' + max + ').');
+            inputTgl.focus();
+            return false;
+        }
+    }
+    return true;
+}
+
 function konfirmasiHapusKegiatan(idKegiatan, namaKegiatan) {
     bukaPopupKonfirmasi({
         judul: 'Hapus Kegiatan?',

@@ -70,10 +70,20 @@ try {
     } elseif ($action === 'update_jadwal_kegiatan') {
         $idKegiatan = (int) ($_POST['id_kegiatan'] ?? 0);
         $prokerId   = (int) ($_POST['proker_id'] ?? 0);
+        $proker     = $prokerModel->getById($prokerId);
+        $tanggal    = $_POST['tanggal'] ?? date('Y-m-d');
+
+        if ($proker && !empty($proker['tanggal_mulai']) && !empty($proker['tanggal_selesai'])) {
+            if ($tanggal < $proker['tanggal_mulai'] || $tanggal > $proker['tanggal_selesai']) {
+                setFlash('error', 'Tanggal kegiatan (' . formatTanggal($tanggal) . ') harus berada dalam batas waktu program kerja (' . formatTanggal($proker['tanggal_mulai']) . ' s/d ' . formatTanggal($proker['tanggal_selesai']) . ').');
+                header('Location: kelola.php?proker_id=' . $prokerId);
+                exit;
+            }
+        }
 
         $pelaksanaan = in_array($_POST['pelaksanaan'] ?? $_POST['mode_kegiatan'] ?? '', ['Online', 'Offline'], true) ? ($_POST['pelaksanaan'] ?? $_POST['mode_kegiatan']) : 'Offline';
         $prokerModel->updateDetailKegiatan($idKegiatan, [
-            'tanggal'          => $_POST['tanggal'] ?? date('Y-m-d'),
+            'tanggal'          => $tanggal,
             'jam_mulai'        => $_POST['jam_mulai'] ?? '15:30',
             'jam_selesai'      => $_POST['jam_selesai'] ?? '17:00',
             'pelaksanaan'      => $pelaksanaan,
@@ -99,12 +109,28 @@ try {
             exit;
         }
 
+        $proker = $prokerModel->getById($prokerId);
+        if (!$proker) {
+            setFlash('error', 'Program kerja tidak ditemukan.');
+            header('Location: kelola.php?proker_id=' . $prokerId);
+            exit;
+        }
+
         $idDivisi = ($isKoorProker && !$isAdmin) ? (int) ($panitiaUser['id_divisi'] ?? 0) : (!empty($_POST['id_divisi']) ? (int) $_POST['id_divisi'] : null);
 
         if ($namaKeg === '') {
             setFlash('error', 'Nama kegiatan wajib diisi.');
             header('Location: kelola.php?proker_id=' . $prokerId);
             exit;
+        }
+
+        $tanggal = !empty($_POST['tanggal']) ? $_POST['tanggal'] : null;
+        if (!empty($tanggal) && !empty($proker['tanggal_mulai']) && !empty($proker['tanggal_selesai'])) {
+            if ($tanggal < $proker['tanggal_mulai'] || $tanggal > $proker['tanggal_selesai']) {
+                setFlash('error', 'Tanggal kegiatan (' . formatTanggal($tanggal) . ') harus berada dalam batas waktu program kerja (' . formatTanggal($proker['tanggal_mulai']) . ' s/d ' . formatTanggal($proker['tanggal_selesai']) . ').');
+                header('Location: kelola.php?proker_id=' . $prokerId);
+                exit;
+            }
         }
 
         $pelaksanaan = in_array($_POST['pelaksanaan'] ?? $_POST['mode_kegiatan'] ?? '', ['Online', 'Offline'], true) ? ($_POST['pelaksanaan'] ?? $_POST['mode_kegiatan']) : 'Offline';
@@ -114,7 +140,7 @@ try {
             'nama_kegiatan'    => $namaKeg,
             'jenis_kegiatan'   => $jenisKeg,
             'bobot_poin'       => $bobotPoin,
-            'tanggal'          => !empty($_POST['tanggal']) ? $_POST['tanggal'] : null,
+            'tanggal'          => $tanggal,
             'jam_mulai'        => !empty($_POST['jam_mulai']) ? $_POST['jam_mulai'] : null,
             'jam_selesai'      => !empty($_POST['jam_selesai']) ? $_POST['jam_selesai'] : null,
             'pelaksanaan'      => $pelaksanaan,
@@ -180,6 +206,11 @@ try {
         header('Location: ' . $redirectUrl);
         exit;
     }
+} catch (InvalidArgumentException $e) {
+    setFlash('error', $e->getMessage());
+    $prokerId = (int) ($_POST['proker_id'] ?? 0);
+    header('Location: kelola.php' . ($prokerId > 0 ? '?proker_id=' . $prokerId : ''));
+    exit;
 } catch (Throwable $e) {
     setFlash('error', 'Terjadi kesalahan saat memproses data presensi.');
 }

@@ -32,6 +32,13 @@ try {
             exit;
         }
 
+        $proker = $prokerModel->getById($idProker);
+        if (!$proker) {
+            setFlash('error', 'Program kerja tidak ditemukan.');
+            header('Location: index.php');
+            exit;
+        }
+
         $namaKeg   = trim($_POST['nama_kegiatan'] ?? '');
         $jenisKeg  = $_POST['jenis_kegiatan'] ?? 'Rapat';
         $bobotPoin = max(1, (int) ($_POST['bobot_poin'] ?? 5));
@@ -43,13 +50,22 @@ try {
             exit;
         }
 
+        $tanggal = !empty($_POST['tanggal']) ? $_POST['tanggal'] : null;
+        if (!empty($tanggal) && !empty($proker['tanggal_mulai']) && !empty($proker['tanggal_selesai'])) {
+            if ($tanggal < $proker['tanggal_mulai'] || $tanggal > $proker['tanggal_selesai']) {
+                setFlash('error', 'Tanggal kegiatan (' . formatTanggal($tanggal) . ') harus berada dalam batas waktu program kerja (' . formatTanggal($proker['tanggal_mulai']) . ' s/d ' . formatTanggal($proker['tanggal_selesai']) . ').');
+                header('Location: detail.php?id=' . $idProker . '&tab=kegiatan');
+                exit;
+            }
+        }
+
         $prokerModel->createKegiatan([
             'id_proker'        => $idProker,
             'id_divisi'        => $idDivisi,
             'nama_kegiatan'    => $namaKeg,
             'jenis_kegiatan'   => $jenisKeg,
             'bobot_poin'       => $bobotPoin,
-            'tanggal'          => !empty($_POST['tanggal']) ? $_POST['tanggal'] : null,
+            'tanggal'          => $tanggal,
             'jam_mulai'        => !empty($_POST['jam_mulai']) ? $_POST['jam_mulai'] : null,
             'jam_selesai'      => !empty($_POST['jam_selesai']) ? $_POST['jam_selesai'] : null,
             'pelaksanaan'      => !empty($_POST['pelaksanaan']) ? $_POST['pelaksanaan'] : (!empty($_POST['mode_kegiatan']) ? $_POST['mode_kegiatan'] : null),
@@ -71,6 +87,13 @@ try {
             exit;
         }
 
+        $proker = $prokerModel->getById($idProker);
+        if (!$proker) {
+            setFlash('error', 'Program kerja tidak ditemukan.');
+            header('Location: index.php');
+            exit;
+        }
+
         $tanggal     = $_POST['tanggal'] ?? null;
         $jamMulai    = $_POST['jam_mulai'] ?? null;
         $jamSelesai  = $_POST['jam_selesai'] ?? null;
@@ -81,6 +104,14 @@ try {
             setFlash('error', 'Harap lengkapi tanggal, jam mulai, jam selesai, dan tempat/tautan kegiatan.');
             header('Location: detail.php?id=' . $idProker . '&tab=kegiatan');
             exit;
+        }
+
+        if (!empty($proker['tanggal_mulai']) && !empty($proker['tanggal_selesai'])) {
+            if ($tanggal < $proker['tanggal_mulai'] || $tanggal > $proker['tanggal_selesai']) {
+                setFlash('error', 'Tanggal kegiatan (' . formatTanggal($tanggal) . ') harus berada dalam batas waktu program kerja (' . formatTanggal($proker['tanggal_mulai']) . ' s/d ' . formatTanggal($proker['tanggal_selesai']) . ').');
+                header('Location: detail.php?id=' . $idProker . '&tab=kegiatan');
+                exit;
+            }
         }
 
         $prokerModel->updateDetailKegiatan($idKegiatan, [
@@ -121,8 +152,15 @@ try {
 
     if ($action === 'tambah_proker') {
         $namaProker = trim($_POST['nama_proker'] ?? '');
-        if ($namaProker === '' || empty($_POST['tanggal_mulai']) || empty($_POST['tanggal_selesai'])) {
-            setFlash('error', 'Harap lengkapi nama dan tanggal pelaksanaan program kerja.');
+        $mulai      = $_POST['tanggal_mulai'] ?? '';
+        $selesai    = $_POST['tanggal_selesai'] ?? '';
+        if ($namaProker === '' || empty($mulai) || empty($selesai)) {
+            setFlash('error', 'Harap lengkapi nama serta tanggal mulai dan tanggal selesai program kerja.');
+            header('Location: index.php');
+            exit;
+        }
+        if ($selesai < $mulai) {
+            setFlash('error', 'Tanggal selesai proker tidak boleh lebih awal dari tanggal mulai (' . formatTanggal($mulai) . ').');
             header('Location: index.php');
             exit;
         }
@@ -130,20 +168,33 @@ try {
             'nama_proker'     => $namaProker,
             'periode'         => trim($_POST['periode'] ?? '2026/2027'),
             'deskripsi'       => trim($_POST['deskripsi'] ?? ''),
-            'tanggal_mulai'   => $_POST['tanggal_mulai'],
-            'tanggal_selesai' => $_POST['tanggal_selesai'],
+            'tanggal_mulai'   => $mulai,
+            'tanggal_selesai' => $selesai,
             'status_proker'   => $_POST['status_proker'] ?? 'Berjalan',
         ]);
         setFlash('success', 'Program kerja baru berhasil dibuat beserta 4 divisi standar.');
         header('Location: detail.php?id=' . $newId);
         exit;
     } elseif ($action === 'edit_proker') {
+        $namaProker = trim($_POST['nama_proker'] ?? '');
+        $mulai      = $_POST['tanggal_mulai'] ?? '';
+        $selesai    = $_POST['tanggal_selesai'] ?? '';
+        if ($namaProker === '' || empty($mulai) || empty($selesai)) {
+            setFlash('error', 'Harap lengkapi nama serta tanggal mulai dan tanggal selesai program kerja.');
+            header('Location: index.php');
+            exit;
+        }
+        if ($selesai < $mulai) {
+            setFlash('error', 'Tanggal selesai proker tidak boleh lebih awal dari tanggal mulai (' . formatTanggal($mulai) . ').');
+            header('Location: index.php');
+            exit;
+        }
         $prokerModel->update($idProker, [
-            'nama_proker'     => trim($_POST['nama_proker'] ?? ''),
+            'nama_proker'     => $namaProker,
             'periode'         => trim($_POST['periode'] ?? '2026/2027'),
             'deskripsi'       => trim($_POST['deskripsi'] ?? ''),
-            'tanggal_mulai'   => $_POST['tanggal_mulai'],
-            'tanggal_selesai' => $_POST['tanggal_selesai'],
+            'tanggal_mulai'   => $mulai,
+            'tanggal_selesai' => $selesai,
             'status_proker'   => $_POST['status_proker'] ?? 'Berjalan',
         ]);
         setFlash('success', 'Informasi program kerja berhasil diperbarui.');
@@ -231,6 +282,12 @@ try {
         }
         setFlash('success', 'Anggota berhasil dikeluarkan dari kepanitiaan.');
         header('Location: detail.php?id=' . $idProker . '&tab=panitia');
+        exit;
+    }
+} catch (InvalidArgumentException $e) {
+    setFlash('error', $e->getMessage());
+    if ($idProker > 0) {
+        header('Location: detail.php?id=' . $idProker . '&tab=kegiatan');
         exit;
     }
 } catch (Throwable $e) {

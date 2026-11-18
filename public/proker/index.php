@@ -158,17 +158,17 @@ include __DIR__ . '/../../includes/header.php';
             <button type="button" class="popup-close-btn modal-close-btn" onclick="tutupPopup('modal-tambah-proker')">&times;</button>
         </div>
 
-        <form method="post" action="proses.php">
+        <form method="post" action="proses.php" onsubmit="return validasiProker(this)">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="tambah_proker">
 
             <div class="form-row-2">
                 <div class="form-group">
-                    <label class="form-label">Nama Program Kerja</label>
+                    <label class="form-label">Nama Program Kerja *</label>
                     <input type="text" name="nama_proker" class="form-control w-full" placeholder="Contoh: Rapat Kerja 2026" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Periode Kepengurusan</label>
+                    <label class="form-label">Periode Kepengurusan *</label>
                     <input type="text" name="periode" class="form-control w-full" value="2026/2027" required>
                 </div>
             </div>
@@ -180,12 +180,12 @@ include __DIR__ . '/../../includes/header.php';
 
             <div class="form-row-2">
                 <div class="form-group">
-                    <label class="form-label">Tanggal Mulai</label>
-                    <input type="date" name="tanggal_mulai" class="form-control w-full" required>
+                    <label class="form-label">Tanggal Mulai *</label>
+                    <input type="date" name="tanggal_mulai" id="tambah-mulai-proker" class="form-control w-full" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Tanggal Selesai</label>
-                    <input type="date" name="tanggal_selesai" class="form-control w-full" required>
+                    <label class="form-label">Tanggal Selesai *</label>
+                    <input type="date" name="tanggal_selesai" id="tambah-selesai-proker" class="form-control w-full" required>
                 </div>
             </div>
 
@@ -216,18 +216,18 @@ include __DIR__ . '/../../includes/header.php';
             <button type="button" class="popup-close-btn modal-close-btn" onclick="tutupPopup('modal-edit-proker')">&times;</button>
         </div>
 
-        <form method="post" action="proses.php">
+        <form method="post" action="proses.php" onsubmit="return validasiProker(this)">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="edit_proker">
             <input type="hidden" name="id_proker" id="edit-id-proker">
 
             <div class="form-row-2">
                 <div class="form-group">
-                    <label class="form-label">Nama Program Kerja</label>
+                    <label class="form-label">Nama Program Kerja *</label>
                     <input type="text" name="nama_proker" id="edit-nama-proker" class="form-control w-full" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Periode Kepengurusan</label>
+                    <label class="form-label">Periode Kepengurusan *</label>
                     <input type="text" name="periode" id="edit-periode-proker" class="form-control w-full" required>
                 </div>
             </div>
@@ -239,11 +239,11 @@ include __DIR__ . '/../../includes/header.php';
 
             <div class="form-row-2">
                 <div class="form-group">
-                    <label class="form-label">Tanggal Mulai</label>
+                    <label class="form-label">Tanggal Mulai *</label>
                     <input type="date" name="tanggal_mulai" id="edit-mulai-proker" class="form-control w-full" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Tanggal Selesai</label>
+                    <label class="form-label">Tanggal Selesai *</label>
                     <input type="date" name="tanggal_selesai" id="edit-selesai-proker" class="form-control w-full" required>
                 </div>
             </div>
@@ -266,6 +266,41 @@ include __DIR__ . '/../../includes/header.php';
 </div>
 
 <script>
+function validasiProker(form) {
+    const mulai = form.querySelector('input[name="tanggal_mulai"]');
+    const selesai = form.querySelector('input[name="tanggal_selesai"]');
+    if (mulai && selesai && mulai.value && selesai.value) {
+        if (selesai.value < mulai.value) {
+            alert('Tanggal selesai proker tidak boleh lebih awal dari tanggal mulai (' + mulai.value + ').');
+            selesai.focus();
+            return false;
+        }
+    }
+    return true;
+}
+
+const tMulai = document.getElementById('tambah-mulai-proker');
+const tSelesai = document.getElementById('tambah-selesai-proker');
+if (tMulai && tSelesai) {
+    tMulai.addEventListener('change', function() {
+        tSelesai.min = this.value;
+        if (tSelesai.value && tSelesai.value < this.value) {
+            tSelesai.value = this.value;
+        }
+    });
+}
+
+const eMulai = document.getElementById('edit-mulai-proker');
+const eSelesai = document.getElementById('edit-selesai-proker');
+if (eMulai && eSelesai) {
+    eMulai.addEventListener('change', function() {
+        eSelesai.min = this.value;
+        if (eSelesai.value && eSelesai.value < this.value) {
+            eSelesai.value = this.value;
+        }
+    });
+}
+
 function bukaModalEditProker(data) {
     document.getElementById('edit-id-proker').value = data.id_proker;
     document.getElementById('edit-nama-proker').value = data.nama_proker;
@@ -273,6 +308,7 @@ function bukaModalEditProker(data) {
     document.getElementById('edit-deskripsi-proker').value = data.deskripsi;
     document.getElementById('edit-mulai-proker').value = data.tanggal_mulai;
     document.getElementById('edit-selesai-proker').value = data.tanggal_selesai;
+    document.getElementById('edit-selesai-proker').min = data.tanggal_mulai || '';
     document.getElementById('edit-status-proker').value = data.status_proker;
     bukaPopup('modal-edit-proker');
 }
