@@ -143,3 +143,24 @@ CREATE INDEX idx_sesi_presensi_proker ON sesi_presensi(id_proker);
 CREATE INDEX idx_presensi_kegiatan ON presensi(id_kegiatan, status_validasi);
 CREATE INDEX idx_riwayat_poin_user ON riwayat_poin(id_user, id_proker);
 CREATE INDEX idx_users_fts ON users USING gin(to_tsvector('indonesian', nama || ' ' || nim));
+
+-- uji coba index
+EXPLAIN ANALYZE 
+SELECT * FROM users 
+WHERE role = 'anggota' AND status_akun = 'aktif';
+
+EXPLAIN ANALYZE 
+SELECT * FROM sesi_presensi 
+WHERE id_proker = 1;
+
+EXPLAIN ANALYZE 
+SELECT * FROM presensi 
+WHERE id_kegiatan = 10 AND status_validasi = 'valid';
+
+EXPLAIN ANALYZE 
+SELECT * FROM riwayat_poin 
+WHERE id_user = 5 AND id_proker = 1;
+
+EXPLAIN ANALYZE 
+SELECT * FROM users 
+WHERE to_tsvector('indonesian', nama || ' ' || nim) @@ plainto_tsquery('indonesian', 'Budi');
