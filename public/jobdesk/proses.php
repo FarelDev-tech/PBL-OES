@@ -51,16 +51,23 @@ try {
         return $j;
     };
 
-    // ---- Admin / Super Admin: tambah, edit, hapus jobdesk (tanpa penerima)
-    if (in_array($action, ['tambah_jobdesk', 'edit_jobdesk', 'hapus_jobdesk'], true)) {
-        if (!$isAdmin) {
-            kembali('error', 'Akses ditolak. Hanya Admin yang dapat menambah, mengubah, atau menghapus jobdesk.', $back);
-        }
+    $bolehAdmin = in_array($action, ['tambah_jobdesk', 'hapus_jobdesk'], true);
 
-        if ($action === 'hapus_jobdesk') {
-            $ambilJobdesk();
-            $jobdeskModel->delete((int) $_POST['id_jobdesk']);
-            kembali('success', 'Jobdesk berhasil dihapus.', $back);
+    // Tambah & hapus: hanya Admin / Super Admin
+    if ($bolehAdmin && !$isAdmin) {
+        kembali('error', 'Akses ditolak. Hanya Admin yang dapat menambah atau menghapus jobdesk.', $back);
+    }
+
+    if ($action === 'hapus_jobdesk') {
+        $ambilJobdesk();
+        $jobdeskModel->delete((int) $_POST['id_jobdesk']);
+        kembali('success', 'Jobdesk berhasil dihapus.', $back);
+    }
+
+    // Tambah & edit: Admin (semua divisi, tanpa penerima) atau Koordinator (edit jobdesk divisinya + pilih penerima)
+    if (in_array($action, ['tambah_jobdesk', 'edit_jobdesk'], true)) {
+        if (!$isAdmin && !($isKoor && $idDivisiKoor > 0 && $action === 'edit_jobdesk')) {
+            kembali('error', 'Akses ditolak. Hanya Admin atau Koordinator yang dapat mengubah jobdesk.', $back);
         }
 
         $judul = trim($_POST['judul'] ?? '');
@@ -81,7 +88,16 @@ try {
             kembali('error', 'Bobot poin harus antara 0 dan 500.', $back);
         }
 
-        $idDivisi = (int) ($_POST['id_divisi'] ?? 0);
+        $job = null;
+        if ($action === 'edit_jobdesk') {
+            $job = $ambilJobdesk();
+            if (!$isAdmin && (int) ($job['id_divisi'] ?? 0) !== $idDivisiKoor) {
+                kembali('error', 'Akses ditolak. Jobdesk ini bukan milik divisi Anda.', $back);
+            }
+        }
+
+        // Koordinator terkunci di divisinya; Admin memilih divisi
+        $idDivisi = $isAdmin ? (int) ($_POST['id_divisi'] ?? 0) : $idDivisiKoor;
         $divisiValid = array_filter($prokerModel->getDivisi($idProker), fn($x) => (int) $x['id_divisi'] === $idDivisi);
         if (!$divisiValid) {
             kembali('error', 'Pilih divisi untuk jobdesk ini.', $back);
@@ -99,26 +115,13 @@ try {
 
         if ($action === 'tambah_jobdesk') {
             $jobdeskModel->create($data);
-            kembali('success', 'Jobdesk berhasil ditambahkan. Koordinator divisi dapat menugaskannya ke anggota.', $back);
+            kembali('success', 'Jobdesk berhasil ditambahkan. Koordinator divisi dapat menugaskannya.', $back);
         }
 
-        $ambilJobdesk();
-        $jobdeskModel->update((int) $_POST['id_jobdesk'], $data);
+        // Penerima hanya diatur Koordinator (boleh memilih dirinya sendiri)
+        $penerima = $isAdmin ? null : $jobdeskModel->filterPenerima($idProker, $idDivisi, (array) ($_POST['user_ids'] ?? []));
+        $jobdeskModel->update((int) $job['id_jobdesk'], $data, $penerima);
         kembali('success', 'Jobdesk berhasil diperbarui.', $back);
-    }
-
-    // ---- Koordinator: atur penerima jobdesk divisinya
-    if ($action === 'atur_penerima') {
-        if (!$isKoor || $idDivisiKoor <= 0) {
-            kembali('error', 'Akses ditolak. Hanya Koordinator divisi yang dapat menugaskan anggota.', $back);
-        }
-        $job = $ambilJobdesk();
-        if ((int) ($job['id_divisi'] ?? 0) !== $idDivisiKoor) {
-            kembali('error', 'Akses ditolak. Jobdesk ini bukan milik divisi Anda.', $back);
-        }
-        $penerima = $jobdeskModel->filterPenerima($idProker, $idDivisiKoor, (array) ($_POST['user_ids'] ?? []));
-        $jobdeskModel->setPenerima((int) $job['id_jobdesk'], $penerima);
-        kembali('success', 'Penerima jobdesk berhasil disimpan.', $back);
     }
 
     kembali('error', 'Aksi tidak dikenali.', $back);

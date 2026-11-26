@@ -43,7 +43,7 @@ $daftarPanitia      = $prokerModel->getPanitia($idProker);
 $userBelumTerdaftar = $isAdmin ? $prokerModel->getUserBelumPanitia($idProker) : [];
 
 $jobdeskModel  = new JobdeskModel($pdo);
-$koorJob       = (!$isAdmin && $isKoorProker && $idDivisiKoor > 0);   // Koordinator: hanya atur penerima
+$koorJob       = (!$isAdmin && $isKoorProker && $idDivisiKoor > 0);   // Koordinator: edit jobdesk divisinya + pilih penerima, tanpa hapus
 $filterJobdesk = (!$isAdmin && ($_GET['filter'] ?? '') === 'saya') ? 'saya' : 'semua';
 $divisiJobdesk = $jobdeskModel->getDivisiBerjobdesk($idProker);
 $divFilter     = (int) ($_GET['div'] ?? 0);
@@ -225,7 +225,7 @@ include __DIR__ . '/../../includes/header.php';
                     <?php if ($isAdmin): ?>
                         Admin menentukan jobdesk, tenggat, dan bobot poin per divisi. Penugasan ke anggota dilakukan Koordinator divisi.
                     <?php elseif ($koorJob): ?>
-                        Tugaskan jobdesk divisi <?php echo e($namaDivisiKoor); ?> kepada koordinator dan anggota divisi.
+                        Edit jobdesk divisi <?php echo e($namaDivisiKoor); ?> dan tugaskan ke koordinator atau anggota divisi.
                     <?php else: ?>
                         Daftar tugas proker beserta tenggat dan bobot poinnya.
                     <?php endif; ?>
@@ -742,14 +742,77 @@ include __DIR__ . '/../../includes/header.php';
 
                     <div class="form-group" style="margin-bottom: 14px;">
                         <label class="form-label">Divisi *</label>
+                        <select name="id_divisi" id="atur-select-divisi" class="form-select" style="width: 100%;" required>
+                            <?php foreach ($daftarDivisi as $d): ?>
+                                <option value="<?php echo (int) $d['id_divisi']; ?>"><?php echo e($d['nama_divisi']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Jabatan *</label>
+                        <select name="jabatan" id="atur-select-jabatan" class="form-select" style="width: 100%;" required>
+                            <option value="Anggota">Anggota</option>
+                            <option value="Koordinator">Koordinator</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button type="button" class="btn btn-outline" onclick="tutupPopup('modal-atur-jabatan')">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <form method="post" action="proses.php" id="form-hapus-divisi" style="display:none;">
+        <?php echo csrfField(); ?>
+        <input type="hidden" name="aksi" value="hapus_divisi">
+        <input type="hidden" name="id_proker" value="<?php echo $idProker; ?>">
+        <input type="hidden" name="id_divisi" id="hapus-div-id" value="">
+    </form>
+
+    <form method="post" action="proses.php" id="form-keluarkan-panitia" style="display:none;">
+        <?php echo csrfField(); ?>
+        <input type="hidden" name="aksi" value="keluarkan_panitia">
+        <input type="hidden" name="id_proker" value="<?php echo $idProker; ?>">
+        <input type="hidden" name="id_panitia" id="keluarkan-pan-id" value="">
+    </form>
+<?php endif; ?>
+
+<?php if ($isAdmin || $koorJob): ?>
+    <div class="modal-backdrop" id="modal-jobdesk">
+        <div class="modal-dialog" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="jobdesk-modal-judul">Tambah Jobdesk</h3>
+                <button type="button" class="modal-close" onclick="tutupPopup('modal-jobdesk')">&times;</button>
+            </div>
+            <form method="post" action="../jobdesk/proses.php">
+                <?php echo csrfField(); ?>
+                <input type="hidden" name="aksi" id="jobdesk-aksi" value="tambah_jobdesk">
+                <input type="hidden" name="id_proker" value="<?php echo $idProker; ?>">
+                <input type="hidden" name="id_jobdesk" id="jobdesk-id" value="">
+                <input type="hidden" name="div" value="<?php echo $divFilter; ?>">
+                <div class="modal-body">
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label class="form-label">Judul Jobdesk *</label>
+                        <input type="text" name="judul" id="jobdesk-judul" class="form-control" placeholder="Contoh: Desain poster publikasi" maxlength="150" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label class="form-label">Deskripsi</label>
+                        <textarea name="deskripsi" id="jobdesk-deskripsi" class="form-control" rows="3" placeholder="Detail tugas (opsional)"></textarea>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label class="form-label">Divisi *</label>
                         <?php if ($isAdmin): ?>
-                        <select name="id_divisi" id="jobdesk-divisi" class="form-select" style="width: 100%;" required>
+                        <select name="id_divisi" id="jobdesk-divisi" class="form-select" style="width: 100%;" required onchange="filterPenerimaJobdesk()">
                             <option value="">Pilih Divisi</option>
                             <?php foreach ($daftarDivisi as $d): ?>
                                 <option value="<?php echo (int) $d['id_divisi']; ?>"><?php echo e($d['nama_divisi']); ?></option>
                             <?php endforeach; ?>
                         </select>
                         <?php else: ?>
+                        <input type="hidden" name="id_divisi" id="jobdesk-divisi" value="<?php echo $idDivisiKoor; ?>">
                         <input type="text" class="form-control" value="<?php echo e($namaDivisiKoor ?: 'Divisi Anda'); ?>" readonly style="background: #f1f5f9; cursor: not-allowed;">
                         <?php endif; ?>
                     </div>
@@ -765,21 +828,21 @@ include __DIR__ . '/../../includes/header.php';
                     </div>
                     <?php if ($isAdmin): ?>
                     <div class="alert-box-neutral" style="font-size: 12px; margin-bottom: 0;">
-                        💡 Penerima tugas dipilih oleh Koordinator divisi.
+                        💡 Penerima tugas dipilih oleh Koordinator.
                     </div>
                     <?php else: ?>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Ditugaskan Kepada</label>
+                        <label class="form-label">Ditugaskan Kepada <span style="font-weight: 400; color: var(--oes-neutral-500);">(sesuai divisi jobdesk)</span></label>
                         <div style="max-height: 180px; overflow-y: auto; border: 1px solid var(--oes-neutral-200); border-radius: var(--radius-md); padding: 6px 10px; background: #fff;">
                             <?php foreach ($calonPenerima as $c): ?>
-                                <label style="display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--oes-neutral-100); font-size: 13px; cursor: pointer;">
+                                <label class="item-penerima" data-divisi="<?php echo (int) ($c['id_divisi'] ?? 0); ?>" style="display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--oes-neutral-100); font-size: 13px; cursor: pointer;">
                                     <input type="checkbox" name="user_ids[]" value="<?php echo (int) $c['id_user']; ?>" class="cb-penerima">
                                     <span style="font-weight: 500;"><?php echo e($c['nama']); ?><?php echo (int) $c['id_user'] === $currentUserId ? ' (Saya)' : ''; ?></span>
                                     <span style="font-size: 11px; color: var(--oes-neutral-500); margin-left: auto;"><?php echo e($c['jabatan']); ?></span>
                                 </label>
                             <?php endforeach; ?>
                             <?php if (empty($calonPenerima)): ?>
-                                <div style="font-size: 12px; color: var(--oes-neutral-400); text-align: center; padding: 14px;">Belum ada anggota di divisimu.</div>
+                                <div style="font-size: 12px; color: var(--oes-neutral-400); text-align: center; padding: 14px;">Belum ada koordinator/anggota di divisi ini.</div>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -792,7 +855,9 @@ include __DIR__ . '/../../includes/header.php';
             </form>
         </div>
     </div>
+<?php endif; ?>
 
+<?php if ($isAdmin): ?>
     <form method="post" action="../jobdesk/proses.php" id="form-hapus-jobdesk" style="display:none;">
         <?php echo csrfField(); ?>
         <input type="hidden" name="aksi" value="hapus_jobdesk">
@@ -821,12 +886,24 @@ function bukaModalJobdesk(job) {
     document.getElementById('jobdesk-deskripsi').value = edit ? job.deskripsi : '';
     document.getElementById('jobdesk-deadline').value  = edit ? job.deadline : '';
     document.getElementById('jobdesk-bobot').value     = edit ? job.bobot_poin : 10;
-    const selDivisi = document.getElementById('jobdesk-divisi');
-    if (selDivisi) selDivisi.value = edit ? job.id_divisi : '';
+    document.getElementById('jobdesk-divisi').value    = edit ? job.id_divisi : '';
     document.querySelectorAll('#modal-jobdesk .cb-penerima').forEach(cb => {
         cb.checked = edit && job.penerima.includes(parseInt(cb.value, 10));
     });
+    filterPenerimaJobdesk();
     bukaPopup('modal-jobdesk');
+}
+
+// Tampilkan hanya calon penerima dari divisi yang dipilih
+function filterPenerimaJobdesk() {
+    const sel = document.getElementById('jobdesk-divisi');
+    const div = parseInt(sel.value, 10) || 0;
+    const kunci = sel.tagName !== 'SELECT'; // Koordinator: divisi terkunci, daftar sudah khusus divisinya
+    document.querySelectorAll('#modal-jobdesk .item-penerima').forEach(item => {
+        const cocok = kunci || parseInt(item.dataset.divisi, 10) === div;
+        item.style.display = cocok ? 'flex' : 'none';
+        if (!cocok) item.querySelector('.cb-penerima').checked = false;
+    });
 }
 
 function konfirmasiHapusJobdesk(id, judul) {

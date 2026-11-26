@@ -72,13 +72,27 @@ class JobdeskModel
     public function getCalonPenerima(int $idProker, int $idDivisi): array
     {
         $stmt = $this->conn->prepare(
-            "SELECT u.id_user, u.nama, pp.jabatan
+            "SELECT u.id_user, u.nama, pp.jabatan, pp.id_divisi
              FROM panitia_proker pp JOIN users u ON u.id_user = pp.id_user
              WHERE pp.id_proker = :p AND pp.id_divisi = :d
                AND u.role NOT IN ('admin', 'super_admin')
              ORDER BY (pp.jabatan = 'Koordinator') DESC, u.nama ASC"
         );
         $stmt->execute(['p' => $idProker, 'd' => $idDivisi]);
+        return $stmt->fetchAll();
+    }
+
+    // Calon penerima seluruh divisi proker (koordinator + anggota, bukan Admin/Super Admin)
+    public function getCalonPenerimaProker(int $idProker): array
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT u.id_user, u.nama, pp.jabatan, pp.id_divisi
+             FROM panitia_proker pp JOIN users u ON u.id_user = pp.id_user
+             WHERE pp.id_proker = :p AND pp.id_divisi IS NOT NULL
+               AND u.role NOT IN ('admin', 'super_admin')
+             ORDER BY pp.id_divisi, (pp.jabatan = 'Koordinator') DESC, u.nama ASC"
+        );
+        $stmt->execute(['p' => $idProker]);
         return $stmt->fetchAll();
     }
 
