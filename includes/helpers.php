@@ -110,6 +110,10 @@ function renderBadge($teks, $tipe = 'auto')
             'Koreksi Admin'       => 'badge-primary-dark',
             'Koordinator'         => 'badge-dark',
             'Anggota'             => 'badge-primary',
+            'To Do'               => 'badge-neutral',
+            'In Progress'         => 'badge-primary',
+            'Done'                => 'badge-success',
+            'Closed'              => 'badge-dark',
         ];
         $kelas = $map[$teks] ?? 'badge-neutral';
     } else {
