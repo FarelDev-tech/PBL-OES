@@ -174,6 +174,20 @@ class ProkerModel
         $hasJadwal = !empty($data['tanggal']);
         $statusDetail = $hasJadwal ? 'Lengkap' : 'Belum Dilengkapi';
 
+        if ($hasJadwal && !empty($data['id_proker'])) {
+            $proker = $this->getById((int) $data['id_proker']);
+            if ($proker && !empty($proker['tanggal_mulai']) && !empty($proker['tanggal_selesai'])) {
+                if ($data['tanggal'] < $proker['tanggal_mulai'] || $data['tanggal'] > $proker['tanggal_selesai']) {
+                    $tglKegiatan = function_exists('formatTanggal') ? formatTanggal($data['tanggal']) : $data['tanggal'];
+                    $tglMulai    = function_exists('formatTanggal') ? formatTanggal($proker['tanggal_mulai']) : $proker['tanggal_mulai'];
+                    $tglSelesai  = function_exists('formatTanggal') ? formatTanggal($proker['tanggal_selesai']) : $proker['tanggal_selesai'];
+                    throw new InvalidArgumentException(
+                        "Tanggal kegiatan ({$tglKegiatan}) harus berada dalam batas waktu program kerja ({$tglMulai} s/d {$tglSelesai})."
+                    );
+                }
+            }
+        }
+
         $sql = "INSERT INTO sesi_presensi (
                     id_proker, id_divisi, nama_kegiatan, jenis_kegiatan, bobot_poin,
                     tanggal, jam_mulai, jam_selesai, pelaksanaan, tempat_atau_link,
@@ -220,6 +234,27 @@ class ProkerModel
 
     public function updateDetailKegiatan(int $idKegiatan, array $data): bool
     {
+        if (!empty($data['tanggal'])) {
+            $stmtP = $this->conn->prepare(
+                "SELECT p.tanggal_mulai, p.tanggal_selesai 
+                 FROM sesi_presensi s 
+                 JOIN proker p ON s.id_proker = p.id_proker 
+                 WHERE s.id_kegiatan = :id LIMIT 1"
+            );
+            $stmtP->execute(['id' => $idKegiatan]);
+            $proker = $stmtP->fetch();
+            if ($proker && !empty($proker['tanggal_mulai']) && !empty($proker['tanggal_selesai'])) {
+                if ($data['tanggal'] < $proker['tanggal_mulai'] || $data['tanggal'] > $proker['tanggal_selesai']) {
+                    $tglKegiatan = function_exists('formatTanggal') ? formatTanggal($data['tanggal']) : $data['tanggal'];
+                    $tglMulai    = function_exists('formatTanggal') ? formatTanggal($proker['tanggal_mulai']) : $proker['tanggal_mulai'];
+                    $tglSelesai  = function_exists('formatTanggal') ? formatTanggal($proker['tanggal_selesai']) : $proker['tanggal_selesai'];
+                    throw new InvalidArgumentException(
+                        "Tanggal kegiatan ({$tglKegiatan}) harus berada dalam batas waktu program kerja ({$tglMulai} s/d {$tglSelesai})."
+                    );
+                }
+            }
+        }
+
         $sql = "UPDATE sesi_presensi
                 SET tanggal = :tanggal,
                     jam_mulai = :jam_mulai,
